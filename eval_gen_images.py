@@ -10,6 +10,8 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torchvision.utils import make_grid
 
+import torchvision.utils as vutils
+
 from models import get_flow_model
 from datasets import get_dataset
 from utils import seed_all, load_config, get_optimizer, get_scheduler, count_parameters
@@ -29,9 +31,14 @@ if __name__ == '__main__':
     seed_all(config.train.seed)
     print(config)
     logdir = os.path.join(args.logdir, args.savename)
-    if not os.path.exists(logdir):
-        os.makedirs(logdir, exist_ok=True)
-    writer = SummaryWriter(logdir)
+    imgdir = f'{logdir}/gen_images'
+
+    dirs = [logdir, imgdir]
+    for d in dirs:
+        if not os.path.exists(d):
+            os.makedirs(d, exist_ok=True)
+
+    # writer = SummaryWriter(logdir)
 
     # Data
     print('Loading datasets...')
@@ -70,12 +77,24 @@ if __name__ == '__main__':
             model.eval()
             traj = model.sample(method, n_sample, n_step, args.device).clamp(0, 1)
             img = make_grid(traj, nrow=8, normalize=False, value_range=(0, 1))
-            writer.add_image('sample', img, global_step)
+            # writer.add_image('sample', img, global_step)
         return traj
 
 
     assert args.resume is not None, 'Please specify the checkpoint to resume from.'
 
-    traj = sample(config.n_sample, config.n_step, 'ode')
-    import pdb; pdb.set_trace()
+    # save image
+    total_img = 30000
+    b = config.n_sample
+
+    n_batches = total_img // b + 1
+
+    i = 0
+    for bi in tqdm(range(n_batches)):
+        traj = sample(config.n_sample, config.n_step, 'ode')
+        for i in range(b):
+            cur_i = bi * b + i
+            vutils.save_image(traj[i:i+1], f'{imgdir}/sample-{cur_i:04d}.png')
+
+    # import pdb; pdb.set_trace()
     print('Sampling finished!')
