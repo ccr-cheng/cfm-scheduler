@@ -48,4 +48,5 @@ encoder:
   nonlinearity: elu
 
 n_sample: 64
-n_step: 200
+# n_step: 200
+n_step: 300

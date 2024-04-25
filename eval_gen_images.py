@@ -31,7 +31,14 @@ if __name__ == '__main__':
     seed_all(config.train.seed)
     print(config)
     logdir = os.path.join(args.logdir, args.savename)
-    imgdir = f'{logdir}/gen_images'
+    # sampler = 'ode'
+    # return_traj = False
+    sampler = 'euler'
+    return_traj = True 
+    # return_traj = False
+    imgdir = f'{logdir}/gen_images-n_step-{config.n_step}-{sampler}'
+    if return_traj:
+        imgdir += '-withTraj'
 
     dirs = [logdir, imgdir]
     for d in dirs:
@@ -72,11 +79,29 @@ if __name__ == '__main__':
             scheduler.load_state_dict(ckpt['scheduler'])
     global_step = 0
 
-    def sample(n_sample, n_step, method='euler'):
+    def sample(n_sample, n_step, method='euler', return_traj=False):
         with torch.no_grad():
             model.eval()
-            traj = model.sample(method, n_sample, n_step, args.device).clamp(0, 1)
-            img = make_grid(traj, nrow=8, normalize=False, value_range=(0, 1))
+
+            if method == 'ode':
+                traj = model.sample(method, n_sample, n_step, args.device).clamp(0, 1)
+            elif method == 'euler':
+                traj = model.sample(method, n_sample, n_step, args.device, return_traj=return_traj).clamp(0, 1)
+
+            if return_traj:
+                # only take 64 frames. take the frames evenly spaced.
+                # n_traj = 64
+                n_traj = 16
+                step_size = n_step // n_traj + 1
+
+                traj_sampled = traj[::step_size]
+                remain = n_traj - len(traj_sampled)
+                traj_sampled = torch.cat([traj_sampled, traj[-remain:]], dim=0)
+
+                traj = traj_sampled # first dim: n_steps
+
+                # traj = traj[::(n_step // n_traj)]
+                # img = make_grid(traj, nrow=8, normalize=False, value_range=(0, 1))
             # writer.add_image('sample', img, global_step)
         return traj
 
@@ -84,17 +109,32 @@ if __name__ == '__main__':
     assert args.resume is not None, 'Please specify the checkpoint to resume from.'
 
     # save image
-    total_img = 30000
+    # total_img = 30000
+    total_img = 100
     b = config.n_sample
 
     n_batches = total_img // b + 1
 
     i = 0
     for bi in tqdm(range(n_batches)):
-        traj = sample(config.n_sample, config.n_step, 'ode')
+        # traj = sample(config.n_sample, config.n_step, 'ode')
+        traj = sample(config.n_sample, config.n_step, sampler, return_traj)
         for i in range(b):
             cur_i = bi * b + i
-            vutils.save_image(traj[i:i+1], f'{imgdir}/sample-{cur_i:04d}.png')
+
+            if return_traj:
+                traj_i = traj[:, i:i+1] # n_step, 1, C, H, W
+                traj_i = traj_i.squeeze(1) # n_step, C, H, W
+                # traj_j = vutils.make_grid(traj_i, nrow=8)
+                traj_j = vutils.make_grid(traj_i, nrow=1)
+                vutils.save_image(traj_j, f'{imgdir}/sample-{cur_i:04d}.png')
+            else:
+                vutils.save_image(traj[i:i+1], f'{imgdir}/sample-{cur_i:04d}.png')
 
     # import pdb; pdb.set_trace()
     print('Sampling finished!')
+
+
+# 1. visualization (ode+euler) + fid (ode).
+# 2. sample with euler
+#    - return_traj: with euler

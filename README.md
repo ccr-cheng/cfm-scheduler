@@ -19,3 +19,9 @@ To test the models, run the following command:
 ```bash
 python main.py <config-file>.yml --mode inf --savename <save-name> --resume <model-path>
 ```
+
+
+
+# Dataset
+
+- CIFAR-10 raw images
