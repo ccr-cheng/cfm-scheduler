@@ -96,7 +96,9 @@ if __name__ == '__main__':
 
                 traj_sampled = traj[::step_size]
                 remain = n_traj - len(traj_sampled)
-                traj_sampled = torch.cat([traj_sampled, traj[-remain:]], dim=0)
+
+                if remain > 0:
+                    traj_sampled = torch.cat([traj_sampled, traj[-remain:]], dim=0)
 
                 traj = traj_sampled # first dim: n_steps
 
@@ -126,7 +128,7 @@ if __name__ == '__main__':
                 traj_i = traj[:, i:i+1] # n_step, 1, C, H, W
                 traj_i = traj_i.squeeze(1) # n_step, C, H, W
                 # traj_j = vutils.make_grid(traj_i, nrow=8)
-                traj_j = vutils.make_grid(traj_i, nrow=1)
+                traj_j = vutils.make_grid(traj_i, nrow=len(traj_i))
                 vutils.save_image(traj_j, f'{imgdir}/sample-{cur_i:04d}.png')
             else:
                 vutils.save_image(traj[i:i+1], f'{imgdir}/sample-{cur_i:04d}.png')
