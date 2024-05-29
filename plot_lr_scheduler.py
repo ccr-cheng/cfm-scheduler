@@ -1,18 +1,12 @@
 import argparse
-from models import get_flow_model
-from utils import seed_all, load_config, get_optimizer, get_scheduler, count_parameters
-from datasets import get_dataset
-from torch.utils.data import DataLoader
 import torch
-from tqdm import tqdm
 import matplotlib.pyplot as plt
-import numpy as np
+
+from utils import seed_all, load_config
 from models.schedulers import get_fm_scheduler
 
 
-
 def get_scheduler_results(time_steps, config_dir):
-
     config = load_config(config_dir)
     scheduler = get_fm_scheduler(config.scheduler)
     seed_all(config.train.seed)
@@ -33,7 +27,6 @@ def get_scheduler_results(time_steps, config_dir):
     return lr_list, deriv_list, deriv_divide_list
 
 
-
 def plot_lr(time_steps, cos, exp, linear, savename):
     plt.plot(time_steps, cos, label='Cosine scheduler')
     plt.plot(time_steps, exp, label='Exponential scheduler')
@@ -51,7 +44,6 @@ def plot_lr(time_steps, cos, exp, linear, savename):
     plt.legend()
     plt.savefig(f'{savename}.png')
     plt.show()
-
 
 
 if __name__ == '__main__':

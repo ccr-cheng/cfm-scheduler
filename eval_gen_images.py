@@ -1,15 +1,10 @@
 import argparse
 import os
-import time
 
 from tqdm import tqdm
 import torch
-from torch.nn.utils import clip_grad_norm_
 import torch.utils.tensorboard
 from torch.utils.data import DataLoader
-from torch.utils.tensorboard import SummaryWriter
-from torchvision.utils import make_grid
-
 import torchvision.utils as vutils
 
 from models import get_flow_model
@@ -34,7 +29,7 @@ if __name__ == '__main__':
     # sampler = 'ode'
     # return_traj = False
     sampler = 'euler'
-    return_traj = True 
+    return_traj = True
     # return_traj = False
     imgdir = f'{logdir}/gen_images-n_step-{config.n_step}-{sampler}'
     if return_traj:
@@ -79,6 +74,7 @@ if __name__ == '__main__':
             scheduler.load_state_dict(ckpt['scheduler'])
     global_step = 0
 
+
     def sample(n_sample, n_step, method='euler', return_traj=False):
         with torch.no_grad():
             model.eval()
@@ -100,7 +96,7 @@ if __name__ == '__main__':
                 if remain > 0:
                     traj_sampled = torch.cat([traj_sampled, traj[-remain:]], dim=0)
 
-                traj = traj_sampled # first dim: n_steps
+                traj = traj_sampled  # first dim: n_steps
 
                 # traj = traj[::(n_step // n_traj)]
                 # img = make_grid(traj, nrow=8, normalize=False, value_range=(0, 1))
@@ -125,17 +121,16 @@ if __name__ == '__main__':
             cur_i = bi * b + i
 
             if return_traj:
-                traj_i = traj[:, i:i+1] # n_step, 1, C, H, W
-                traj_i = traj_i.squeeze(1) # n_step, C, H, W
+                traj_i = traj[:, i:i + 1]  # n_step, 1, C, H, W
+                traj_i = traj_i.squeeze(1)  # n_step, C, H, W
                 # traj_j = vutils.make_grid(traj_i, nrow=8)
                 traj_j = vutils.make_grid(traj_i, nrow=len(traj_i))
                 vutils.save_image(traj_j, f'{imgdir}/sample-{cur_i:04d}.png')
             else:
-                vutils.save_image(traj[i:i+1], f'{imgdir}/sample-{cur_i:04d}.png')
+                vutils.save_image(traj[i:i + 1], f'{imgdir}/sample-{cur_i:04d}.png')
 
     # import pdb; pdb.set_trace()
     print('Sampling finished!')
-
 
 # 1. visualization (ode+euler) + fid (ode).
 # 2. sample with euler
